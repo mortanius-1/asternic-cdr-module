@@ -17,7 +17,27 @@ function return_timestamp($date_string) {
     return $u_timestamp;
 }
 
+function asternic_cdr_dynamic_db() {
+    global $db, $amp_conf;
 
+    $db_name = 'asteriskcdrdb';
+    $db_hash = array('mysql' => 'mysql', 'postgres' => 'pgsql');
+    $db_type = 'mysql';
+    $db_host = 'localhost';
+
+    if (isset($amp_conf["CDRDBHOST"]) && $amp_conf["CDRDBHOST"] != "") {
+        $db_host = $amp_conf["CDRDBHOST"];
+    }
+    $db_port = empty($amp_conf["CDRDBPORT"]) ? '' :  ':' . $amp_conf["CDRDBPORT"];
+    $db_user = empty($amp_conf["CDRDBUSER"]) ? $amp_conf["AMPDBUSER"] : $amp_conf["CDRDBUSER"];
+    $db_pass = empty($amp_conf["CDRDBPASS"]) ? $amp_conf["AMPDBPASS"] : $amp_conf["CDRDBPASS"];
+    $datasource = $db_type . '://' . $db_user . ':' . $db_pass . '@' . $db_host . $db_port . '/' . $db_name;
+    
+    $dbcdr = DB::connect($datasource); // attempt connection
+    
+
+    return $dbcdr;
+}
 
 function swf_bar($values,$width,$height,$divid,$stack) {
 
@@ -192,6 +212,7 @@ function asternic_download() {
 function asternic_getrecords( $MYVARS ,$appconfig) {
 
     $db = $appconfig['db'];
+    $db_alt = $appconfig['db_alt'];
 
     $channel = $MYVARS['channel'];
     $start   = $MYVARS['start'];
@@ -224,7 +245,7 @@ function asternic_getrecords( $MYVARS ,$appconfig) {
 
     $me=true;
 
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());

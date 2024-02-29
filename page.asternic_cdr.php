@@ -73,6 +73,10 @@ $timestamp_end   = return_timestamp($appconfig['end']);
 $elapsed_seconds = $timestamp_end - $timestamp_start;
 $appconfig['period'] = floor(($elapsed_seconds / 60) / 60 / 24) + 1;
 
+// Load remote CDR helper function
+$appconfig['db']=$db;
+$appconfig['db_alt']=asternic_cdr_dynamic_db();
+
 $sql = "SELECT extension,if(dial is null,concat('USER/',extension),dial) AS dial,";
 $sql.= "name FROM users ";
 $sql.= "LEFT JOIN devices ON users.extension=devices.id";
@@ -98,8 +102,6 @@ $appconfig['dayp'][3]=_('Wednesday');
 $appconfig['dayp'][4]=_('Thursday');
 $appconfig['dayp'][5]=_('Friday');
 $appconfig['dayp'][6]=_('Saturday');
-
-$appconfig['db']=$db;
 
 if(isset($_REQUEST['action'])) {
     if($_REQUEST['action']=="download") {
@@ -198,6 +200,7 @@ if(!isset($_POST['start'])) {
 function asternic_distribution($appconfig) {
 
     $db   = $appconfig['db'];
+    $db_alt   = $appconfig['db_alt'];
     $dayp = $appconfig['dayp'];
 
     $start_parts = preg_split("/ /", $appconfig['start']);
@@ -244,8 +247,7 @@ function asternic_distribution($appconfig) {
     $query.= "FROM asteriskcdrdb.cdr WHERE  substring(channel,1,locate(\"-\",channel,1)-1)<>'' ";
     $query.= "AND calldate >= '${appconfig['start']}' AND calldate <= '${appconfig['end']}' AND (duration-billsec) >=0 ";
     $query.= "HAVING chan1 IN (${appconfig['extension']}) ORDER BY calldate";
-
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -298,7 +300,7 @@ function asternic_distribution($appconfig) {
 
     //echo $query;
 
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -352,7 +354,7 @@ function asternic_distribution($appconfig) {
     $query.= "AND ( substring(dstchannel,1,locate(\"-\",dstchannel,1)-1) IN (${appconfig['extension']}) OR substring(channel,1,locate(\"-\",channel,1)-1) IN (${appconfig['extension']})) ";
     $query.= "GROUP BY 1 ORDER BY calldate";
 
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -513,6 +515,7 @@ function asternic_distribution($appconfig) {
 function inbound_outbound($type,$appconfig) {
 
     $db = $appconfig['db'];
+    $db_alt = $appconfig['db_alt'];
 
     $graphcolor      = "&bgcolor=0xfffdf3&bgcolorchart=0xdfedf3&fade1=ff6600&fade2=ff6314&colorbase=0xfff3b3&reverse=1";
     $graphcolorstack = "&bgcolor=0xfffdf3&bgcolorchart=0xdfedf3&fade1=ff6600&colorbase=fff3b3&reverse=1&fade2=0x528252";
@@ -526,8 +529,7 @@ function inbound_outbound($type,$appconfig) {
     $query.= "billsec,duration,duration-billsec as ringtime,src,dst,calldate,disposition,accountcode FROM asteriskcdrdb.cdr ";
     $query.= "WHERE calldate >= '${appconfig['start']}' AND calldate <= '${appconfig['end']}' AND (duration-billsec) >=0 ${appconfig['condicionextra']} ";
     $query.= "HAVING chan1 in (${appconfig['extension']}) order by null";
-
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -605,8 +607,7 @@ function inbound_outbound($type,$appconfig) {
     $query.= "billsec,duration,duration-billsec as ringtime,src,dst,calldate,disposition,accountcode FROM asteriskcdrdb.cdr ";
     $query.= "WHERE calldate >= '${appconfig['start']}' AND calldate <= '${appconfig['end']}' AND (duration-billsec) >=0 ${appconfig['condicionextra']} ";
     $query.= "HAVING chan1 in (${appconfig['extension']}) order by null";
-
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -979,6 +980,7 @@ if($total_calls>0) {
 function asternic_report($typereport,$appconfig) {
 
     $db = $appconfig['db'];
+    $db_alt = $appconfig['db_alt'];
 
     $graphcolor  = "&bgcolor=0xfffdf3&bgcolorchart=0xdfedf3&fade1=ff6600&fade2=ff6314&colorbase=0xfff3b3&reverse=1";
     $graphcolorstack = "&bgcolor=0xfffdf3&bgcolorchart=0xdfedf3&fade1=ff6600&colorbase=fff3b3&reverse=1&fade2=0x528252";
@@ -1013,8 +1015,7 @@ function asternic_report($typereport,$appconfig) {
     $billsec         = Array();
     $total_ring      = 0;
     $total_calls     = 0;
-
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -1038,8 +1039,7 @@ function asternic_report($typereport,$appconfig) {
     $query.= "billsec,duration,duration-billsec as ringtime,src,dst,calldate,disposition,accountcode FROM asteriskcdrdb.cdr ";
     $query.= "WHERE calldate >= '${appconfig['start']}' AND calldate <= '${appconfig['end']}' AND (duration-billsec) >=0 ${appconfig['condicionextra']} ";
     $query.= "HAVING chan1 in (${appconfig['extension']}) order by null";
-
-    $res = $db->query($query);
+    $res = $db_alt->query($query);
 
     if(DB::IsError($res)) {
         die($res->getMessage());
@@ -1473,6 +1473,7 @@ function asternic_home($appconfig) {
     $items_extension = array_map("remove_quotes",$items_extension);
 
     $db = $appconfig['db'];
+    $db_alt = $appconfig['db_alt'];
 
     $sql= "SELECT src,dst,lastapp,substring(channel,1,locate(\"-\",channel,1)-1) AS chan1, ";
     $sql.="substring(dstchannel,1,locate(\"-\",dstchannel,1)-1) AS chan2, ";
@@ -1553,6 +1554,7 @@ function asternic_home($appconfig) {
 <input type=hidden name=start>
 <input type=hidden name=end>
 
+<?php /*
 <div id='topdash'>
 <h2>
 <?php echo _("Today's Dashboard");?>
@@ -1628,6 +1630,9 @@ function asternic_home($appconfig) {
         </thead>
         </table>
 </div>
+
+*/ 
+?>
 <br/>
 <hr/>
 <div id='left'>
